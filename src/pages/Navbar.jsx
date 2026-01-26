@@ -8,7 +8,7 @@ const Navbar = () => {
          <li><NavLink to="/about">About Us</NavLink></li>
     </> 
   return (
-    <div className="navbar bg-base-100 shadow-sm">
+    <div className="navbar bg-base-100 shadow-sm rounded-2xl mb-5">
       <div className="navbar-start">
         <div className="dropdown">
           <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
@@ -35,7 +35,7 @@ const Navbar = () => {
             {navItems}
           </ul>
         </div>
-        <a className="btn btn-ghost text-xl"><ProFastLogo></ProFastLogo></a>
+        <a className=" text-xl"><ProFastLogo></ProFastLogo></a>
       </div>
 
 

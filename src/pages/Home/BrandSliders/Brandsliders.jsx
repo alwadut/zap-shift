@@ -29,7 +29,7 @@ const BrandSliders = () => {
             Trusted by Companies
           </h2>
           <p className="text-base-content/70 mt-2">
-            We’ve worked with leading companies across Bangladesh
+            We’ve worked with leading companies across the World
           </p>
         </div>
 
@@ -44,7 +44,7 @@ const BrandSliders = () => {
             </div>
           ))}
         </Marquee.default>
-
+          <div className="divider mt-10"></div>
       </div>
     </section>
   );
