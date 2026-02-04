@@ -73,10 +73,10 @@ export default function ReviewSlider() {
                 key={index}
                 initial={{ opacity: 0, scale: 0.85, x: position * 300 }}
                 animate={{
-                   opacity: position === 0 ? 1 : 0.25,
-  scale: position === 0 ? 1.05 : 0.9,
-  x: position * 380,
-  filter: position === 0 ? "blur(0px)" : "blur(1.5px)",
+                  opacity: position === 0 ? 1 : 0.25,
+                  scale: position === 0 ? 1.05 : 0.9,
+                  x: position * 380,
+                  filter: position === 0 ? "blur(0px)" : "blur(1.5px)",
                 }}
                 exit={{ opacity: 0, scale: 0.85 }}
                 transition={{
@@ -85,19 +85,21 @@ export default function ReviewSlider() {
                 }}
                 className="absolute"
               >
-                <div className={`card w-[420px] bg-base-100 transition-all duration-500
-  ${position === 0
-    ? "shadow-2xl ring-2 ring-[#cdeb66]"
-    : "shadow-md"
-  }
-`}>
+                <div
+                  className={`card w-[420px] bg-base-100 transition-all duration-500
+  ${position === 0 ? "shadow-2xl ring-2 ring-[#cdeb66]" : "shadow-md"}
+`}
+                >
                   <div className="card-body text-center">
-                    <div className="flex "><SiComma className="text-6xl text-gray-400 "/><SiComma className="text-6xl  text-gray-400"/></div>
+                    <div className="flex ">
+                      <SiComma className="text-6xl text-gray-400 " />
+                      <SiComma className="text-6xl  text-gray-400" />
+                    </div>
                     <div>
-                        <p className="text-base opacity-80 leading-relaxed">
-                      “{item.review}”
-                    </p>
-                    <div className="divider "></div>
+                      <p className="text-base opacity-80 leading-relaxed">
+                        “{item.review}”
+                      </p>
+                      <div className="divider "></div>
                     </div>
                     <div className="mt-6 flex  justify-center">
                       <div className=" mb-4">
@@ -107,7 +109,7 @@ export default function ReviewSlider() {
                           className="w-16 h-16 rounded-full object-cover"
                         />
                       </div>
-                        
+
                       <div>
                         <h3 className="font-semibold ">{item.name}</h3>
                         <p className="text-sm opacity-60">{item.designation}</p>
