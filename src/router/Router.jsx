@@ -7,6 +7,9 @@ import Home from "../pages/Home/Home/Home";
 import AuthLayout from "../layout/AuthLayout";
 import Login from "../pages/AuthPages/Login/Login";
 import Regestation from "../pages/AuthPages/Regestation/Regestation";
+import Coverage from "../pages/coverage/Coverage";
+import SendPercel from "../pages/sendpercel/SendPercel";
+import PrivateRoute from "../routes/PrivateRoute";
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +19,16 @@ export const router = createBrowserRouter([
         {
             index:true,
             Component:Home
+        },
+        {
+            path:'coverage',
+            Component:Coverage,
+            loader:() => fetch('./warehouses.json')
+        },
+        {
+          path:'sendPercel',
+          element: <PrivateRoute><SendPercel/> </PrivateRoute>,
+           loader:() => fetch('./warehouses.json')
         }
     ]
   },
@@ -28,7 +41,7 @@ export const router = createBrowserRouter([
         Component:Login,
       },
       {
-        path:'regestation',
+        path:'register',
         Component:Regestation
       }
     ]
