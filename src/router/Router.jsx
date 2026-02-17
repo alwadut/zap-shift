@@ -12,6 +12,7 @@ import SendPercel from "../pages/sendpercel/SendPercel";
 import PrivateRoute from "../routes/PrivateRoute";
 import DashBoardLayout from "../layout/DashBoardLayout";
 import Myparcels from "../pages/Dashboard/Myparcels/Myparcels";
+import DashboardHome from "../pages/Dashboard/Home/DashboardHome";
 
 export const router = createBrowserRouter([
   {
@@ -49,18 +50,23 @@ export const router = createBrowserRouter([
     ]
   },
   {
-    path:'/dashboard',
-    element:<PrivateRoute>
-      <DashBoardLayout></DashBoardLayout>
-    </PrivateRoute>,
-    children:[
-      {
-        path:'myparcels',
-        Component:Myparcels
-      },
-      {
-        
-      }
-    ]
-  }
+  path: "/dashboard",
+  element: (
+    <PrivateRoute>
+      <DashBoardLayout />
+    </PrivateRoute>
+  ),
+  children: [
+    {
+      index: true,   // default dashboard page
+      element: <DashboardHome />
+    },
+    {
+      path: "myparcels",
+      element: <Myparcels />
+    },
+    
+  ]
+}
+
 ]);

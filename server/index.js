@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 
 dotenv.config();
 
@@ -75,6 +75,22 @@ async function run() {
 
   } catch (error) {
     res.status(500).send({ error: "Failed to save parcel" });
+  }
+});
+
+  //delete parcel 
+  app.delete("/parcels/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const result = await parcelsCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    res.send(result);
+
+  } catch (error) {
+    res.status(500).send({ error: "Failed to delete parcel" });
   }
 });
 
