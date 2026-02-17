@@ -11,12 +11,17 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/react-query": "^5.90.21",
     "aos": "^2.3.4",
     "axios": "^1.13.5",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
     "firebase": "^12.9.0",
     "framer-motion": "^12.29.2",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.2.2",
+    "mongodb": "^7.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-fast-marquee": "^1.6.5",
@@ -27,6 +32,7 @@
     "react-responsive-carousel": "^3.2.23",
     "react-router": "^7.13.0",
     "react-router-dom": "^7.13.0",
+    "sweetalert2": "^11.26.18",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {

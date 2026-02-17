@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useLoaderData } from "react-router";
-import toast, { Toaster } from "react-hot-toast";
+import Swal from "sweetalert2";
 import axios from "axios";
+import UseAuth from "../../Hooks/useAuth";
+import UseAxiosSecure from "../../Hooks/UseAxiosSecure";
 
 const SendParcel = () => {
   const warehouses = useLoaderData();
@@ -15,46 +17,43 @@ const SendParcel = () => {
     reset,
     formState: { errors },
   } = useForm({
-  shouldUnregister: true,
-});
+    shouldUnregister: true,
+  });
 
-  // 🔥 Watch Fields
+  const {user} = UseAuth();
+  const axiosSecure = UseAxiosSecure();
+  
+  // ================= WATCH FIELDS =================
   const parcelType = watch("type");
   const senderRegion = watch("senderRegion");
-  const senderDistrict = watch("senderDistrict");
   const receiverRegion = watch("receiverRegion");
+  const senderDistrict = watch("senderDistrict");
   const receiverDistrict = watch("receiverDistrict");
 
-  // 🔥 Unique Regions
+  // ================= UNIQUE REGIONS =================
   const regions = [...new Set(warehouses.map((item) => item.region))];
 
-  // 🔥 Filter Sender Districts
+  // ================= FILTER DISTRICTS =================
   const senderDistricts = useMemo(() => {
     return warehouses.filter((w) => w.region === senderRegion);
   }, [senderRegion, warehouses]);
 
-  // 🔥 Filter Receiver Districts
   const receiverDistricts = useMemo(() => {
     return warehouses.filter((w) => w.region === receiverRegion);
   }, [receiverRegion, warehouses]);
 
-  // 🔥 Sender Covered Area
+  // ================= FILTER COVERED AREA =================
   const senderAreas = useMemo(() => {
-    const found = warehouses.find(
-      (w) => w.district === senderDistrict
-    );
+    const found = warehouses.find((w) => w.district === senderDistrict);
     return found?.covered_area || [];
   }, [senderDistrict, warehouses]);
 
-  // 🔥 Receiver Covered Area
   const receiverAreas = useMemo(() => {
-    const found = warehouses.find(
-      (w) => w.district === receiverDistrict
-    );
+    const found = warehouses.find((w) => w.district === receiverDistrict);
     return found?.covered_area || [];
   }, [receiverDistrict, warehouses]);
 
-  // 🔥 Reset dependent fields
+  // ================= RESET DEPENDENT FIELDS =================
   useEffect(() => {
     resetField("senderDistrict");
     resetField("senderServiceCenter");
@@ -65,13 +64,12 @@ const SendParcel = () => {
     resetField("receiverServiceCenter");
   }, [receiverRegion, resetField]);
 
-  //  Cost Calculation
+  // ================= COST CALCULATION =================
   const calculateCost = (data) => {
     let cost = data.type === "document" ? 60 : 120;
 
     if (data.type === "non-document" && data.weight) {
-      const weight = parseFloat(data.weight);
-      cost += weight * 15;
+      cost += parseFloat(data.weight) * 15;
     }
 
     if (data.senderDistrict !== data.receiverDistrict) {
@@ -81,84 +79,145 @@ const SendParcel = () => {
     return cost;
   };
 
-  const onSubmit = (data) => {
-    console.log("the form data is ",data);
-    const cost = calculateCost(data);
-    
+  // ================= PRICING BREAKDOWN =================
+  const getPricingBreakdown = (data) => {
+    let breakdown = [];
 
-    toast((t) => (
-      <div>
-        <p className="font-bold text-lg">Delivery Cost: ৳{cost}</p>
-        <button
-          className="btn btn-success btn-sm mt-3 w-full"
-          onClick={() => handleConfirm(data, cost, t.id)}
-        >
-          Confirm
-        </button>
-      </div>
-    ));
-  };
+    if (data.type === "document") {
+      breakdown.push({ label: "Document Charge", amount: 60 });
+    } else {
+      breakdown.push({ label: "Non-Document Charge", amount: 120 });
 
-  const handleConfirm = async (data, cost, toastId) => {
-    const parcelData = {
-      ...data,
-      deliveryCost: cost,
-      trackingId: "TRK" + Date.now(),
-      status: "pending",
-      creation_date: new Date(),
-    };
-
-    try {
-      await axios.post("http://localhost:5000/parcels", parcelData);
-      toast.success("Parcel Created Successfully!");
-     
-      reset();
-    } catch (err) {
-      toast.error("Failed to save parcel");
+      if (data.weight) {
+        breakdown.push({
+          label: `Weight Charge (${data.weight}kg × 15)`,
+          amount: parseFloat(data.weight) * 15,
+        });
+      }
     }
 
-    toast.dismiss(toastId);
+    if (data.senderDistrict !== data.receiverDistrict) {
+      breakdown.push({ label: "Inter-District Charge", amount: 50 });
+    }
+
+    return breakdown;
   };
 
+  // ================= FORM SUBMIT =================
+  const onSubmit = async (data) => {
+    console.log(data);
+    const cost = calculateCost(data);
+    const breakdown = getPricingBreakdown(data);
+
+    const breakdownHTML = breakdown
+      .map(
+        (item) => `
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span>${item.label}</span>
+          <span>৳${item.amount}</span>
+        </div>
+      `
+      )
+      .join("");
+
+    const result = await Swal.fire({
+      title: "Delivery Cost Breakdown",
+      html: `
+        ${breakdownHTML}
+        <hr/>
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:18px; margin-top:10px;">
+          <span>Total</span>
+          <span>৳${cost}</span>
+        </div>
+      `,
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonText: "Proceed to Payment",
+      cancelButtonText: "Cancel Parcel",
+      confirmButtonColor: "#16a34a",
+      cancelButtonColor: "#dc2626",
+    });
+
+    if (result.isConfirmed) {
+      handleConfirm(data, cost);
+    }
+  };
+
+  // ================= SAVE PARCEL =================
+const handleConfirm = async (data, cost) => {
+  const deliveryTime =
+    data.senderDistrict === data.receiverDistrict
+      ? "24 Hours"
+      : "48-72 Hours";
+
+  const parcelData = {
+    ...data,
+    email: user?.email,
+    weight: data.type === "document" ? null : data.weight,
+    deliveryCost: cost,
+    trackingId: `TRK-${Date.now()}`, // `TRK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    status: "pending",
+    paymentStatus: "unpaid",
+    deliveryTime,
+    creation_date: new Date().toISOString(),
+  };
+
+  try {
+    const res = await axiosSecure.post("/parcels", parcelData);
+
+    console.log(res.data);
+
+    if (res.data.insertedId) {
+      await Swal.fire({
+        icon: "success",
+        title: "Parcel Created Successfully!",
+        html: `
+          <p><strong>Tracking ID:</strong> ${parcelData.trackingId}</p>
+          <p><strong>Delivery Cost:</strong> ৳${cost}</p>
+          <p class="text-sm text-gray-500 mt-2">Status: Pending | Payment: Unpaid</p>
+        `,
+        confirmButtonColor: "#16a34a",
+      });
+       // toDO in future  Redirect to payment page AFTER popup closes
+      reset();
+    }
+  } catch (error) {
+    console.error(error);
+
+    Swal.fire({
+      icon: "error",
+      title: "Failed to save parcel",
+      text: "Please try again later.",
+    });
+  }
+};
+
+
+
+  // ================= UI =================
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-10">
-      <Toaster />
-
       <div className="text-center mb-10">
-        <h1 className="text-3xl md:text-4xl font-bold">
-          Send Parcel
-        </h1>
-        <p className="text-gray-500">
-          Door to Door Delivery Service
-        </p>
+        <h1 className="text-3xl md:text-4xl font-bold">Send Parcel</h1>
+        <p className="text-gray-500">Door to Door Delivery Service</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
 
-        {/* ================= Parcel Info ================= */}
-        <div className="card bg-base-100 shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Parcel Info
-          </h2>
+        {/* ================= PARCEL INFO ================= */}
+        <div className="card bg-base-100 shadow-lg p-6 space-y-4">
+          <h2 className="text-xl font-semibold">Parcel Info</h2>
 
-          <div className="flex gap-6 mb-4">
-            <label className="cursor-pointer flex gap-2 items-center">
-              <input
-                type="radio"
-                value="document"
-                className="radio radio-primary"
-                {...register("type", { required: true })}
-              />
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" value="document" className="radio radio-primary"
+                {...register("type", { required: true })} />
               Document
             </label>
 
-            <label className="cursor-pointer flex gap-2 items-center">
-              <input
-                type="radio"
-                value="non-document"
-                className="radio radio-primary"
-                {...register("type", { required: true })}
-              />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" value="non-document" className="radio radio-primary"
+                {...register("type", { required: true })} />
               Non Document
             </label>
           </div>
@@ -183,143 +242,101 @@ const SendParcel = () => {
 
           <textarea
             placeholder="Parcel Description"
-            className="textarea textarea-bordered w-full mt-4"
+            className="textarea textarea-bordered w-full"
             {...register("description", { required: true })}
           />
         </div>
 
-        {/* ================= Sender & Receiver ================= */}
+        {/* ================= SENDER & RECEIVER ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* Sender */}
-          <div className="card bg-base-100 shadow p-6 space-y-4">
-            <h2 className="text-xl font-semibold">
-              Sender Info
-            </h2>
+          <div className="card bg-base-100 shadow-lg p-6 space-y-4">
+            <h2 className="text-xl font-semibold">Sender Info</h2>
 
-            <input
+            <input className="input input-bordered w-full"
               placeholder="Sender Name"
-              className="input input-bordered w-full"
-              {...register("senderName", { required: true })}
-            />
+              {...register("senderName", { required: true })} />
 
-            <input
+            <input className="input input-bordered w-full"
               placeholder="Contact"
-              className="input input-bordered w-full"
-              {...register("senderContact", { required: true })}
-            />
+              {...register("senderContact", { required: true })} />
 
-            {/* Region */}
-            <select
-              className="select select-bordered w-full"
-              {...register("senderRegion", { required: true })}
-            >
+            <select className="select select-bordered w-full"
+              {...register("senderRegion", { required: true })}>
               <option value="">Select Region</option>
               {regions.map((region, i) => (
-                <option key={i} value={region}>
-                  {region}
-                </option>
+                <option key={i} value={region}>{region}</option>
               ))}
             </select>
 
-            {/* District */}
-            <select
-              className="select select-bordered w-full"
-              {...register("senderDistrict", { required: true })}
-            >
+            <select className="select select-bordered w-full"
+              {...register("senderDistrict", { required: true })}>
               <option value="">Select District</option>
               {senderDistricts.map((item, i) => (
-                <option key={i} value={item.district}>
-                  {item.district}
-                </option>
+                <option key={i} value={item.district}>{item.district}</option>
               ))}
             </select>
 
-            {/* Covered Area */}
-            <select
-              className="select select-bordered w-full"
-              {...register("senderServiceCenter", { required: true })}
-            >
+            <select className="select select-bordered w-full"
+              {...register("senderServiceCenter", { required: true })}>
               <option value="">Select Area</option>
               {senderAreas.map((area, i) => (
-                <option key={i} value={area}>
-                  {area}
-                </option>
+                <option key={i} value={area}>{area}</option>
               ))}
             </select>
 
-            <textarea
+            <textarea className="textarea textarea-bordered w-full"
               placeholder="Pickup Instruction"
-              className="textarea textarea-bordered w-full"
-              {...register("pickupInstruction", { required: true })}
-            />
+              {...register("pickupInstruction", { required: true })} />
           </div>
 
           {/* Receiver */}
-          <div className="card bg-base-100 shadow p-6 space-y-4">
-            <h2 className="text-xl font-semibold">
-              Receiver Info
-            </h2>
+          <div className="card bg-base-100 shadow-lg p-6 space-y-4">
+            <h2 className="text-xl font-semibold">Receiver Info</h2>
 
-            <input
+            <input className="input input-bordered w-full"
               placeholder="Receiver Name"
-              className="input input-bordered w-full"
-              {...register("receiverName", { required: true })}
-            />
+              {...register("receiverName", { required: true })} />
 
-            <input
+            <input className="input input-bordered w-full"
               placeholder="Contact"
-              className="input input-bordered w-full"
-              {...register("receiverContact", { required: true })}
-            />
+              {...register("receiverContact", { required: true })} />
 
-            <select
-              className="select select-bordered w-full"
-              {...register("receiverRegion", { required: true })}
-            >
+            <select className="select select-bordered w-full"
+              {...register("receiverRegion", { required: true })}>
               <option value="">Select Region</option>
               {regions.map((region, i) => (
-                <option key={i} value={region}>
-                  {region}
-                </option>
+                <option key={i} value={region}>{region}</option>
               ))}
             </select>
 
-            <select
-              className="select select-bordered w-full"
-              {...register("receiverDistrict", { required: true })}
-            >
+            <select className="select select-bordered w-full"
+              {...register("receiverDistrict", { required: true })}>
               <option value="">Select District</option>
               {receiverDistricts.map((item, i) => (
-                <option key={i} value={item.district}>
-                  {item.district}
-                </option>
+                <option key={i} value={item.district}>{item.district}</option>
               ))}
             </select>
 
-            <select
-              className="select select-bordered w-full"
-              {...register("receiverServiceCenter", { required: true })}
-            >
+            <select className="select select-bordered w-full"
+              {...register("receiverServiceCenter", { required: true })}>
               <option value="">Select Area</option>
               {receiverAreas.map((area, i) => (
-                <option key={i} value={area}>
-                  {area}
-                </option>
+                <option key={i} value={area}>{area}</option>
               ))}
             </select>
 
-            <textarea
+            <textarea className="textarea textarea-bordered w-full"
               placeholder="Delivery Instruction"
-              className="textarea textarea-bordered w-full"
-              {...register("deliveryInstruction", { required: true })}
-            />
+              {...register("deliveryInstruction", { required: true })} />
           </div>
         </div>
 
         <button className="btn btn-primary w-full text-lg">
           Submit Parcel
         </button>
+
       </form>
     </div>
   );
