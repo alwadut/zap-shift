@@ -3,13 +3,14 @@ import UseAuth from "../../../Hooks/useAuth";
 import UseAxiosSecure from "../../../Hooks/UseAxiosSecure";
 import { useQuery } from "@tanstack/react-query";
 import Swal from "sweetalert2";
+import { useNavigate } from "react-router";
 
 const Myparcels = () => {
   const { user } = UseAuth();
   const axiosSecure = UseAxiosSecure();
   console.log(user);
   const [selectedParcel, setSelectedParcel] = useState(null);
-
+  const navigate = useNavigate()
   const { data: parcels = [],refetch } = useQuery({
     queryKey: ["my-parcels", user?.email],
     enabled: !!user?.email,
@@ -24,7 +25,10 @@ const Myparcels = () => {
   };
 
 
-
+const handlePay = (id) =>{
+  console.log('process to the id ', id );
+  navigate(`/dashboard/payment/${id}`)
+}
 
 const handleDelete = async (parcel) => {
   const result = await Swal.fire({
@@ -50,7 +54,7 @@ const handleDelete = async (parcel) => {
           showConfirmButton: false,
         });
 
-        refetch(); // 🔥 refresh react-query data
+        refetch(); //  refresh react-query data
       }
     } catch (error) {
       console.error(error);
@@ -126,7 +130,7 @@ const handleDelete = async (parcel) => {
                   {/* Pay Button (only if unpaid) */}
                   {parcel.paymentStatus === "unpaid" && (
                     <button
-                      onClick={() => handlePay(parcel)}
+                      onClick={() => handlePay(parcel._id)}
                       className="btn btn-xs btn-success"
                     >
                       Pay

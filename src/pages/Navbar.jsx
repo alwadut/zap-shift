@@ -4,7 +4,18 @@ import ProFastLogo from "./ProfastLogo/ProFastLogo";
 import UseAuth from "../Hooks/useAuth";
 
 const Navbar = () => {
-  const {user} = UseAuth();
+
+  const {user,logOut} = UseAuth();
+
+  const handleLogOut =()=> {
+    logOut()
+    .then(result =>{
+      console.log(result);
+    })
+    .catch(error =>{
+      console.log(error);
+    })
+  }
     const navItems =<>
          <li><NavLink to="/">Home</NavLink> </li>
          <li><NavLink to="/coverage">Coverage</NavLink> </li>
@@ -57,7 +68,13 @@ const Navbar = () => {
         </ul>
       </div>
       <div className="navbar-end">
-        <Link to='/login' className='btn btn-sm btn-primary'>Login</Link>
+        { user ?
+        <button onClick ={handleLogOut} className="btn btn-sm btn-primary">
+          LogOut
+        </button>
+        :
+          <Link to='/login' className='btn btn-sm btn-primary'>Login
+          </Link>}
       </div>
     </div>
   );
