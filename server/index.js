@@ -1,9 +1,14 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import Stripe from "stripe";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 
 dotenv.config();
+
+const stripe = new Stripe(process.env.PAYMENT_GETWAY_KEY);
+
+console.log(stripe);
 
 const app = express();
 const PORT = process.env.PORT;
@@ -102,6 +107,30 @@ app.get('/parcels/:id', async (req, res) => {
 
   } catch (error) {
     res.status(500).send({ error: "Failed to save parcel" });
+  }
+});
+
+
+//payment intent 
+
+app.post("/create-payment-intent", async (req, res) => {
+  const amountInCents = req.body.amountInCents
+  try {
+    const { amount } = req.body; // get amount from frontend
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents, // must be in cents
+      currency: "usd",
+      payment_method_types: ["card"],
+    });
+
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+
+  } catch (error) {
+    console.error("Stripe Error:", error.message);
+    res.status(500).send({ error: error.message });
   }
 });
 
